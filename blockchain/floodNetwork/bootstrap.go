@@ -57,18 +57,20 @@ func (n *Network) recieveConnectionAcknowledgment(conn net.Conn, packet Packet) 
 		return
 	}
 
-	n.log("got P2P connection acknowledge from " + packet.Origin)
+	address := string(packet.Payload)
 
-	for peer := range n.Peers {
-		if packet.Origin == peer.Address {
-			n.log("already P2P connected to " + packet.Origin + ", ACK rejected")
+	n.log("got P2P connection acknowledge from " + address)
+
+	for peer := range n.peers {
+		if address == peer.Address {
+			n.log("already P2P connected to " + address + ", ACK rejected")
 			return
 		}
 	}
 
 	newPeer := Peer{
 		Connection: conn,
-		Address:    packet.Origin,
+		Address:    address,
 	}
 	n.handlePeer(&newPeer)
 }
@@ -82,7 +84,7 @@ func (n *Network) requestConnection(destinationAddr string) (net.Conn, bool) {
 		n.log("Tried to TCP connect to self, request rejected")
 		return nil, false
 	}
-	for peer := range n.Peers {
+	for peer := range n.peers {
 		if destinationAddr == peer.Address {
 			n.log("Already TCP connected to " + destinationAddr + ", request rejected")
 			return nil, false
@@ -114,7 +116,7 @@ func (n *Network) sendAck(c net.Conn) {
 	n.log("sending CONN_ACK to " + c.RemoteAddr().String())
 	ack := Packet{
 		Type:      CONN_ACK,
-		Origin:    n.localAddress,
+		Payload:   []byte(n.localAddress),
 		Timestamp: time.Now().String(),
 	}
 	n.sendPacket(c, ack)
@@ -124,7 +126,7 @@ func (n *Network) sendConnReq(c net.Conn) {
 	n.log("sending CONN_REQ to " + c.RemoteAddr().String())
 	connReq := Packet{
 		Type:      CONN_REQ,
-		Origin:    n.localAddress,
+		Payload:   []byte(n.localAddress),
 		Timestamp: time.Now().String(),
 	}
 	n.sendPacket(c, connReq)

@@ -15,7 +15,7 @@ type PeerList map[*Peer]bool
 
 type Network struct {
 	server        net.Listener
-	Peers         PeerList
+	peers         PeerList
 	recentPackets []Packet
 
 	localAddress string
@@ -25,21 +25,22 @@ type Network struct {
 	waitPeers      sync.WaitGroup
 
 	// callback functions
-	log         func(string)
-	alertPacket func(Packet)
+	log          func(string)
+	alertMessage func([]byte)
 }
 
 // New creates a network object for you.
-// Whenever a packet is recieved, packetCallbackwill be called, passing in that packet.
-func New(packetCallback func(Packet)) Network {
+// Whenever a message is recieved, messageCallback be called, passing in that message.
+func New(messageCallback func([]byte)) Network {
 	return Network{
-		Peers:         make(map[*Peer]bool),
+		peers:         make(map[*Peer]bool),
 		recentPackets: make([]Packet, 0),
 
 		addPeerChan:    make(chan *Peer),
 		removePeerChan: make(chan *Peer),
 
-		alertPacket: packetCallback,
+		alertMessage: messageCallback,
+		log:          func(s string) {}, // throws away debug by default
 	}
 }
 
@@ -83,19 +84,19 @@ func (n *Network) run() {
 	for {
 		select {
 		case newPeer := <-n.addPeerChan:
-			n.Peers[newPeer] = true
+			n.peers[newPeer] = true
 			n.log("added peer " + newPeer.Address)
 			n.waitPeers.Done()
 		case oldPeer := <-n.removePeerChan:
-			_, ok := n.Peers[oldPeer]
+			_, ok := n.peers[oldPeer]
 			if ok {
-				delete(n.Peers, oldPeer)
+				delete(n.peers, oldPeer)
 				n.log("removed peer " + oldPeer.Address)
 
 				n.log("disconnected, sending out new CONN_REQ")
 				connReq := Packet{
 					Type:      CONN_REQ,
-					Origin:    n.localAddress,
+					Payload:   []byte(n.localAddress),
 					Timestamp: time.Now().String(),
 				}
 				n.recieveConnectionRequest(connReq)

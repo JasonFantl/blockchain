@@ -18,9 +18,8 @@ const (
 
 type Packet struct {
 	Type      PacketType
-	Origin    string
-	Payload   interface{} // arbitrary data type
-	Timestamp string
+	Payload   []byte // arbitrary data type
+	Timestamp string // so we can send the same data twice, and it not get rejected
 }
 
 // asynchronous function, a different instance is run for each peer
@@ -65,9 +64,6 @@ func (n *Network) recievePacket(packet Packet) {
 	// then add it so we dont handle again
 	n.recentPackets = append(n.recentPackets, packet)
 
-	// make new packet available to handle outside of library
-	n.alertPacket(packet)
-
 	switch packet.Type {
 	case MESSAGE:
 		n.recieveMessage(packet)
@@ -77,6 +73,8 @@ func (n *Network) recievePacket(packet Packet) {
 }
 
 func (n *Network) recieveMessage(packet Packet) {
+	// make message available to handle outside of library
+	n.alertMessage(packet.Payload)
 	n.announcePacket(packet)
 }
 
@@ -87,13 +85,15 @@ func (n *Network) recieveConnectionRequest(packet Packet) {
 		return
 	}
 
+	address := string(packet.Payload)
+
 	// get random peer
 	var peerToPassTo *Peer = nil
 	pickedIndex := rand.Intn(2) // 50% chance we pass
-	if pickedIndex != 0 && len(n.Peers) > 0 {
-		pickedIndex = rand.Intn(len(n.Peers))
+	if pickedIndex != 0 && len(n.peers) > 0 {
+		pickedIndex = rand.Intn(len(n.peers))
 		i := 0
-		for peer := range n.Peers {
+		for peer := range n.peers {
 			if i == pickedIndex {
 				peerToPassTo = peer
 			}
@@ -102,23 +102,23 @@ func (n *Network) recieveConnectionRequest(packet Packet) {
 	}
 
 	if peerToPassTo == nil {
-		if packet.Origin == n.localAddress {
+		if address == n.localAddress {
 			n.log("cannot request connection to self, throwing out CONN_REQ")
 		} else {
-			n.log("got P2P connection request from " + packet.Origin + ", accepting")
+			n.log("got P2P connection request from " + address + ", accepting")
 
-			conn, ok := n.requestConnection(packet.Origin)
+			conn, ok := n.requestConnection(address)
 			if ok {
 				newPeer := Peer{
 					Connection: conn,
-					Address:    packet.Origin,
+					Address:    address,
 				}
 				n.sendAck(conn) // let them know they are a peer now
 				go n.handleConnection(conn, &newPeer)
 			}
 		}
 	} else {
-		n.log("got P2P connection request from " + packet.Origin + ", forwarding to " + peerToPassTo.Address)
+		n.log("got P2P connection request from " + address + ", forwarding to " + peerToPassTo.Address)
 		packet.Timestamp = time.Now().String() // this makes sure we dont ignore the packet if we get sent it again
 		n.sendPacket(peerToPassTo.Connection, packet)
 	}
@@ -126,10 +126,8 @@ func (n *Network) recieveConnectionRequest(packet Packet) {
 
 // sends packet to all peers
 func (n *Network) announcePacket(packet Packet) {
-	for peer := range n.Peers {
-		if peer.Address != packet.Origin {
-			n.sendPacket(peer.Connection, packet)
-		}
+	for peer := range n.peers {
+		n.sendPacket(peer.Connection, packet)
 	}
 }
 
@@ -145,10 +143,9 @@ func (n *Network) sendPacket(connection net.Conn, packet Packet) {
 	}
 }
 
-func (n *Network) SendMessage(payload interface{}) {
+func (n *Network) SendMessage(payload []byte) {
 	msgPacket := Packet{
 		Type:      MESSAGE,
-		Origin:    n.localAddress,
 		Payload:   payload,
 		Timestamp: time.Now().String(),
 	}

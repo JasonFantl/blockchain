@@ -2,51 +2,57 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
-	"strconv"
 	"strings"
 
-	"github.com/jasonfantl/blockchain/floodNetwork"
+	"github.com/jasonfantl/cryptocurrency/blockchain"
 )
 
-func testNetwork() {
-	recievePacket := func(p floodNetwork.Packet) {
-		if p.Type == floodNetwork.MESSAGE {
-			message := p.Payload.(string)
-			fmt.Printf("\n%s: %s\n", p.Origin, message)
-		}
+func testBlockchain() {
+
+	type Transaction struct {
+		From, To string
+		Amount   int
 	}
 
-	logger := func(s string) {
-		fmt.Printf("-- %s\n", s)
-	}
-
-	n := floodNetwork.New(recievePacket)
-	n.SetLogger(logger)
-
-	port := 1234
-	joined := false
-	counter := 0
-	for !joined && counter < 10 {
-		joined = n.Join("127.0.0.1:1234", strconv.Itoa(port))
-		port++
-		counter++
-	}
+	bc := blockchain.NewBlockchain()
 
 	reader := bufio.NewReader(os.Stdin)
-
 	for {
 		text, _ := reader.ReadString('\n')
 		text = strings.Replace(text, "\n", "", -1)
 
 		if text == "quit" || text == "exit" {
 			return
+		} else if text == "TXs" {
+			peers := make(map[string]int, 0)
+			for _, data := range bc.Data() {
+				var TX Transaction
+				err := json.Unmarshal(data, &TX)
+				if err != nil {
+					continue
+				}
+				peers[TX.From] -= TX.Amount
+				peers[TX.To] += TX.Amount
+			}
+
+			fmt.Println(peers)
+		} else {
+			newTX := Transaction{"a", "b", rand.Intn(100)}
+			bytes, err := json.Marshal(newTX)
+			if err != nil {
+				continue
+			}
+			err = bc.Append(bytes)
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			fmt.Printf("Sent %d from %s to %s\n", newTX.Amount, newTX.From, newTX.To)
 		}
-		n.SendMessage(text)
+
 	}
-}
-
-func testHashedList() {
-
 }
