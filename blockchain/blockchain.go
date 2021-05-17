@@ -1,20 +1,20 @@
 package blockchain
 
 import (
+	"fmt"
 	"strconv"
 
-	"github.com/jasonfantl/cryptocurrency/blockchain/chainStruct"
 	"github.com/jasonfantl/cryptocurrency/blockchain/floodNetwork"
 )
 
 type Blockchain struct {
-	chain   chainStruct.Chain
+	chain   ListChain
 	network floodNetwork.Network
 }
 
 func NewBlockchain() *Blockchain {
 	b := Blockchain{}
-	b.chain = new(chainStruct.SimpleChain)
+	b.chain = ListChain{}
 	b.network = floodNetwork.New(b.recievePacket)
 
 	// join network. First find open port to init from
@@ -30,12 +30,36 @@ func NewBlockchain() *Blockchain {
 	return &b
 }
 
-func (bc *Blockchain) Append(data []byte) error {
-	// return bc.announceBlock(bc.list.Append(data))
-	bc.chain.Append(data)
+func (bc *Blockchain) append(tx Transaction, wallet Wallet) error {
+	err := bc.chain.Append(tx, wallet)
+	if err != nil {
+		return err
+	}
 	return bc.announceChain()
 }
 
-func (bc *Blockchain) Data() [][]byte {
-	return bc.chain.Array()
+func (bc *Blockchain) Send(wallet Wallet, to []byte, amount int) {
+	TX := Transaction{
+		From:   wallet.publicKey,
+		To:     to,
+		Amount: amount,
+	}
+	fmt.Println("sending " + TX.String())
+
+	err := bc.append(TX, wallet)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (bc Blockchain) GetSums() map[string]int {
+	sums := make(map[string]int)
+	for _, nodes := range bc.chain.Nodes {
+		for _, node := range nodes {
+			sums[string(node.Signed.Transaction.From)] -= node.Signed.Transaction.Amount
+			sums[string(node.Signed.Transaction.To)] += node.Signed.Transaction.Amount
+		}
+	}
+
+	return sums
 }

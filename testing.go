@@ -2,9 +2,7 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
 
@@ -13,12 +11,13 @@ import (
 
 func testBlockchain() {
 
-	type Transaction struct {
-		From, To string
-		Amount   int
-	}
-
 	bc := blockchain.NewBlockchain()
+	wallet, err := bc.GenerateWallet()
+	fmt.Println("generated wallet")
+
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -28,31 +27,25 @@ func testBlockchain() {
 		if text == "quit" || text == "exit" {
 			return
 		} else if text == "TXs" {
-			peers := make(map[string]int, 0)
-			for _, data := range bc.Data() {
-				var TX Transaction
-				err := json.Unmarshal(data, &TX)
-				if err != nil {
-					continue
-				}
-				peers[TX.From] -= TX.Amount
-				peers[TX.To] += TX.Amount
+			sums := bc.GetSums()
+			for name, sum := range sums {
+				fmt.Println(string(blockchain.Shorten([]byte(name))), sum)
 			}
-
-			fmt.Println(peers)
 		} else {
-			newTX := Transaction{"a", "b", rand.Intn(100)}
-			bytes, err := json.Marshal(newTX)
-			if err != nil {
-				continue
-			}
-			err = bc.Append(bytes)
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			fmt.Printf("Sent %d from %s to %s\n", newTX.Amount, newTX.From, newTX.To)
+			bc.Send(wallet, []byte(`-----BEGIN RSA PUBLIC KEY-----
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+j63NkNkp/ZjbFG5Xfa0hUfx/oIkNXoHzoubWPon+4aoVOca659xdXOyvqOAzzJ3J
+7W5RlTUmX/H4YYaJkilEGpma7dIktR0UdTdNC5rWnXdn/91x2lWzUKh9gCpcJTld
+6yw2OMadItpcRSg9PVZTzbNcU6ardgwdjQpSzYthYVGo3FudA1x0nykIaaLgQkWu
+35Uqg/y3cldjeZ/nVzruFmmprbf2U1QY2HY7Ftj49SlhOp5Io57BjbqUjwRep2sH
+MXEsXUGn4YSed2ZaqRYvB1p8Djn7kM0fvWvSSSY1DfTpxDMoCw2WYEdYV+SmfOse
+CLrf5/wY3goGCIdP6EDY7SP7OiRsQjj5dYuQEwhXHGmAf0l2hpOaPPnSA5XuLiIZ
+itMIdA3Ys6XdoIb+DpmmE1JTw1ZjlZBbtP6c/3iMMC+bO2eLiH2wpyYpWVQjEBm/
+9PahTCeyyMDtUE3q7ehoXVgYXSEI1nGOQ6FZO9ZHnlddiNVP6VNK3UNYtOh6GJ31
+iwb/JHDJuNWCQuoKBGEg8vHs5wY4DmII+VgFrpDloVnW2hrDjt8ChFPbJuhZ2OLL
+CIVhIvRIFXgTCs9IM3lSXBMNuHsE2kW7ELuQbymsli+oiZ28/0fYVidyeAw5yWZT
+xzVPc8NUUFzqbzFuoR0NGmsCAwEAAQ==
+-----END RSA PUBLIC KEY-----`), 30)
 		}
-
 	}
 }

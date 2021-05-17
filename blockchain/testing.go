@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jasonfantl/cryptocurrency/blockchain/chainStruct"
 	"github.com/jasonfantl/cryptocurrency/blockchain/floodNetwork"
 )
 
@@ -46,16 +45,4 @@ func testNetwork() {
 		// n.SendMessage(text)
 		n.SendMessage([]byte(text))
 	}
-}
-
-func testSimpleChain() {
-
-	l := chainStruct.SimpleChain{}
-
-	l.Append([]byte("a"))
-	l.Append([]byte("b"))
-	fmt.Println(l.String())
-
-	l.Append([]byte("transaction 1"))
-	fmt.Println(l.String())
 }
