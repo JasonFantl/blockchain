@@ -82,7 +82,7 @@ func (lc *ListChain) Update(data []byte) error {
 
 	if newSC.Verify() {
 		lc.Nodes = newSC.Nodes
-		fmt.Println("got updated chain", newSC.String())
+		fmt.Println("got updated chain")
 	}
 
 	return nil

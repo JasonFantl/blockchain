@@ -11,9 +11,12 @@ import (
 
 func testBlockchain() {
 
+	fmt.Println("generating wallet...")
+	wallet, err := blockchain.GenerateWallet()
+	fmt.Println("generated wallet. Joining network...")
+
 	bc := blockchain.NewBlockchain()
-	wallet, err := bc.GenerateWallet()
-	fmt.Println("generated wallet")
+	fmt.Println("Joined network")
 
 	if err != nil {
 		fmt.Println(err)
@@ -23,7 +26,6 @@ func testBlockchain() {
 	for {
 		text, _ := reader.ReadString('\n')
 		text = strings.Replace(text, "\n", "", -1)
-
 		if text == "quit" || text == "exit" {
 			return
 		} else if text == "TXs" {
@@ -32,7 +34,7 @@ func testBlockchain() {
 				fmt.Println(string(blockchain.Shorten([]byte(name))), sum)
 			}
 		} else {
-			bc.Send(wallet, []byte(`-----BEGIN RSA PUBLIC KEY-----
+			go bc.Send(wallet, []byte(`-----BEGIN RSA PUBLIC KEY-----
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 j63NkNkp/ZjbFG5Xfa0hUfx/oIkNXoHzoubWPon+4aoVOca659xdXOyvqOAzzJ3J
 7W5RlTUmX/H4YYaJkilEGpma7dIktR0UdTdNC5rWnXdn/91x2lWzUKh9gCpcJTld

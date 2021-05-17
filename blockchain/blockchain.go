@@ -31,10 +31,13 @@ func NewBlockchain() *Blockchain {
 }
 
 func (bc *Blockchain) append(tx Transaction, wallet Wallet) error {
+	fmt.Println("mining transaction: " + tx.String())
+
 	err := bc.chain.Append(tx, wallet)
 	if err != nil {
 		return err
 	}
+	fmt.Println("mined transaction: " + tx.String())
 	return bc.announceChain()
 }
 
@@ -44,7 +47,6 @@ func (bc *Blockchain) Send(wallet Wallet, to []byte, amount int) {
 		To:     to,
 		Amount: amount,
 	}
-	fmt.Println("sending " + TX.String())
 
 	err := bc.append(TX, wallet)
 	if err != nil {

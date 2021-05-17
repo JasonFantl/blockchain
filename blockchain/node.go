@@ -22,7 +22,7 @@ func verifyBlock(block Block) bool {
 }
 
 func verifyHash(hash []byte) bool {
-	difficulty := 1
+	difficulty := 2
 
 	if len(hash) < difficulty {
 		return false

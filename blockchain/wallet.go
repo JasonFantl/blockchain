@@ -27,7 +27,7 @@ type Wallet struct {
 	publicKey, privateKey []byte
 }
 
-func (bc Blockchain) GenerateWallet() (Wallet, error) {
+func GenerateWallet() (Wallet, error) {
 	privateKey, publicKey := generateRsaKeyPair()
 
 	strPublicKey, err := exportRsaPublicKeyAsPemStr(publicKey)
